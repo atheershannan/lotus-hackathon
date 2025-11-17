@@ -1,25 +1,28 @@
-🚀 Lotus Hackathon – Platform Monorepo
-Coordinator • Microservices • CI/CD • Docker • Infrastructure • Monitoring
+# 🚀 Lotus Hackathon – Platform Monorepo
 
-This repository contains the entire Lotus Hackathon platform, including:
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/features/actions)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Railway](https://img.shields.io/badge/Deploy-Railway-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
 
-- Coordinator microservice
+> **Coordinator • Microservices • CI/CD • Docker • Infrastructure • Monitoring**
 
-- Multiple microservices
+This repository contains the entire **Lotus Hackathon platform**, including:
 
-- CI/CD pipelines
+- 🎯 Coordinator microservice
+- 🔧 Multiple microservices
+- 🔄 CI/CD pipelines
+- 🐳 Docker builds
+- ✅ Smoke testing system
+- 🏗️ Terraform infrastructure (planned)
+- 📊 Monitoring & Security tools (planned)
 
-- Docker builds
+All teams collaborate inside this **single monorepo** to deliver one unified cloud-native system.
 
-- Smoke testing system
+---
 
-- (Future) Terraform infrastructure
+## 📁 Repository Structure
 
-- (Future) Monitoring & Security tools
-
-All teams collaborate inside this single monorepo to deliver one unified system.
-
-📁 Repository Structure
+```
 repo/
 ├── services/
 │   ├── coordinator/
@@ -34,7 +37,7 @@ repo/
 │   │   ├── Dockerfile
 │   │   └── .dockerignore
 │   │
-│   └── ms2/ (optional)
+│   └── ms2/                    # (optional)
 │       ├── server.js
 │       ├── package.json
 │       ├── Dockerfile
@@ -50,127 +53,222 @@ repo/
         ├── coordinator-ci.yml
         ├── microservices-ci.yml
         ├── pr-checks.yml
-        └── docker-build.yml (optional)
+        └── docker-build.yml    # (optional)
+```
 
-🔥 Project Overview
+---
 
-The Lotus platform is a cloud-native, multi-service system designed to showcase:
+## 🔥 Project Overview
 
-AI-powered routing
+The Lotus platform is a **cloud-native, multi-service system** designed to showcase:
 
-Dynamic microservice registration
+- 🤖 AI-powered routing
+- 📝 Dynamic microservice registration
+- ✔️ Schema validation
+- 🎨 Centralized UI/UX configuration
+- 🚀 Deployment automation
+- 📈 Monitoring & observability
 
-Schema validation
+All infrastructure and services deploy to **Railway Cloud**.
 
-Centralized UI/UX configuration
+### Why Monorepo?
 
-Deployment automation
+The monorepo structure simplifies:
 
-Monitoring and observability
+- ✅ CI/CD automation
+- ✅ Code sharing
+- ✅ Team collaboration
+- ✅ Container builds
+- ✅ Deployment workflows
 
-All infrastructure and services deploy to Railway.
+---
 
-The repository is intentionally structured as a monorepo to simplify:
+## 👥 Team Responsibilities
 
-CI/CD
+### 🟦 Team 1 – Terraform (Infrastructure)
 
-Code sharing
+**Goal:** One command deploys the entire system.
 
-Team collaboration
+**Deliverables:**
 
-Container builds
+- Terraform configuration for:
+  - Railway project
+  - Coordinator service
+  - Microservices
+  - Environment IDs
+- Automatic outputs (URLs, ENV IDs, credentials)
+- Fully reproducible infrastructure:
 
-Deployment workflows
-
-👥 Team Responsibilities
-🟦 Team 1 – Terraform (Infrastructure)
-
-Goal: One command deploys the entire system.
-
-Deliverables:
-
-Terraform configuration for:
-
-Railway project
-
-Coordinator service
-
-Microservices
-
-Environment IDs
-
-Automatic outputs: URLs, ENV IDs, credentials
-
-Reproducible infra:
-
+```bash
 terraform apply → full system deployed
+```
 
-🟩 Team 2 – CI/CD (THIS TEAM)
+---
 
-Goal: Fully automated build + deploy pipelines for all services.
+### 🟩 Team 2 – CI/CD (Build, Deploy, Automation)
 
-Deliverables:
+**Goal:** Fully automated build + deploy pipelines for all services.
 
-GitHub Actions workflows:
+**Deliverables:**
 
-Build → Test → Docker Build → Deploy → Smoke Tests
+- GitHub Actions workflows:
+  - Build → Test → Docker Build → Deploy → Smoke Tests
+- Automatic deployment on every push to `main`
+- Live smoke tests for `/health` and `/register`
+- Build logs + preview builds for feature branches
+- Reusable workflows for all teams
+- Documented environment variables
 
-Every push to main automatically deploys to Railway
+**Technologies:**
 
-Live smoke tests for:
+- GitHub Actions
+- Railway CLI
+- Docker
+- Node.js smoke tests
 
-/health
+---
 
-/register
+### 🟥 Team 3 – Coordinator & Microservices
 
-Build logs and preview builds for feature branches
+**Deliverables:**
 
-Reusable workflows for all teams
+- Coordinator service
+- `/register` endpoint
+- `/route` AI-based routing
+- Schema registry & validation
+- UI/UX configuration (`/ui-settings`)
+- Prometheus metrics (`/metrics`)
+- Logging (Winston/Pino)
+- Dockerfiles for each service
 
-Documentation of required secrets
+---
 
-Technologies:
+### 🟨 Team 4 – Monitoring & Security
 
-GitHub Actions
+**Deliverables:**
 
-Railway CLI
+- Prometheus scraping for all services
+- Grafana dashboards (requests/sec, latency, errors, uptime)
+- JWT or mTLS authentication
+- Rate limiting, input validation, injection protection
+- Alerts for failures, routing errors, security violations
 
-Docker
+---
 
-Node.js smoke tests
+## 🐳 Docker
 
-🟥 Team 3 – Coordinator & Microservices
+Each service contains its own:
 
-Deliverables:
+- `Dockerfile`
+- `.dockerignore`
 
-Coordinator service
+All services can be built and run independently.
 
-/register endpoint
+**Example:**
 
-/route AI-based routing
+```bash
+docker build -t coordinator ./services/coordinator
+docker run -p 3000:3000 coordinator
+```
 
-Schema registry & validation
+---
 
-UI/UX configuration endpoint (/ui-settings)
+## 🌐 Railway Deployment Flow
 
-Prometheus metrics
+### Production Deployment
 
-Logging (Winston/Pino)
+```bash
+git push origin main
+```
 
-Dockerfiles for each service
+**Automatically:**
 
-🟨 Team 4 – Monitoring & Security
+1. ✅ Build
+2. 🚀 Deploy to Railway
+3. 🧪 Run smoke tests
+4. ✔️ Mark deployment as successful/failed
 
-Deliverables:
+> 💡 **100% cloud-based** — no local hosting required.
 
-Prometheus scraping for all services
+---
 
-Grafana dashboards (requests/sec, latency, errors, uptime)
+## 🔐 Required GitHub Secrets
 
-JWT or mTLS authentication between services
+Add in: **GitHub → Settings → Secrets → Actions**
 
-Rate limiting, input validation, security protections
+| Secret | Description |
+|--------|-------------|
+| `RAILWAY_TOKEN` | Railway CLI deploy token |
+| `RAILWAY_ENV_COORDINATOR` | Coordinator environment ID |
+| `RAILWAY_ENV_MS1` | Microservice 1 env ID |
+| `RAILWAY_ENV_MS2` | Microservice 2 env ID |
 
-Alerts for failures and routing errors
+---
 
-🐳 Docker Support
+## ⚡ Quick Start (Local Development)
+
+### Coordinator
+
+```bash
+cd services/coordinator
+npm install
+npm start
+```
+
+### Microservice (ms1 example)
+
+```bash
+cd services/ms1
+npm install
+npm start
+```
+
+**All services expose:**
+
+- `/health`
+- `/register`
+
+_(Coordinator also exposes `/route`, `/ui-settings`, `/metrics`)_
+
+---
+
+## 🤝 How to Contribute (Simple Workflow)
+
+To keep the monorepo organized and CI/CD stable:
+
+1. **Create a feature branch**
+
+   ```bash
+   git checkout -b feature/my-change
+   ```
+
+2. **Push → open a Pull Request**
+
+3. **PR runs automated checks** (tests + Docker + smoke tests)
+
+4. **After review & passing CI** → merge into `main`
+
+5. **CI/CD automatically deploys to Railway** ✨
+
+> This workflow ensures safe, stable deployments for all teams.
+
+---
+
+## 📝 License
+
+This project is part of the Lotus Hackathon initiative.
+
+---
+
+## 🙌 Contributors
+
+Made with ❤️ by the Lotus Hackathon teams.
+
+- Team 1: Infrastructure
+- Team 2: CI/CD
+- Team 3: Core Services
+- Team 4: Monitoring & Security
+
+---
+
+**Happy Hacking! 🎉**
