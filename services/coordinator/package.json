@@ -2,9 +2,9 @@
   "name": "coordinator",
   "version": "1.0.0",
   "description": "Coordinator Microservice - Central registry and configuration hub",
-  "main": "src/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node server.js",
     "dev": "nodemon src/index.js"
   },
   "keywords": [

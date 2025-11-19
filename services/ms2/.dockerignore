@@ -4,4 +4,10 @@ npm-debug.log
 .git
 .env
 
+node_modules
+npm-debug.log
+.DS_Store
+.git
+.env
+
 

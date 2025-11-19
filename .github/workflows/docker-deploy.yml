@@ -1,3 +1,112 @@
+name: build-test-deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Build, Test & Deploy Services
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_ENV_COORDINATOR: ${{ secrets.RAILWAY_ENV_COORDINATOR }}
+          RAILWAY_ENV_MS1: ${{ secrets.RAILWAY_ENV_MS1 }}
+          RAILWAY_ENV_MS2: ${{ secrets.RAILWAY_ENV_MS2 }}
+        run: |
+          set -e
+          PORT_COUNTER=3000
+          INTERNAL_PORT=3000
+
+          for service_path in services/*; do
+            if [ ! -d "$service_path" ]; then
+              continue
+            fi
+
+            service=$(basename "$service_path")
+            echo "=============================="
+            echo "Processing service: $service"
+            echo "=============================="
+
+            # Build Docker image
+            docker build -t "$service:latest" "$service_path"
+
+            # Run container locally for smoke tests (on CI runner, not developer machine)
+            docker run -d -p $PORT_COUNTER:$INTERNAL_PORT --name "${service}_test" "$service:latest"
+
+            sleep 10
+
+            # Pre-deploy smoke tests (health + register)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT_COUNTER/health" || echo "000")
+            REGISTER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT_COUNTER/register" || echo "000")
+
+            if [ "$STATUS" -ne 200 ]; then
+              echo "❌ $service /health failed with status $STATUS"
+              docker logs "${service}_test" || true
+              docker rm -f "${service}_test" || true
+              exit 1
+            fi
+
+            if [ "$REGISTER_STATUS" -lt 200 ] || [ "$REGISTER_STATUS" -ge 300 ]; then
+              echo "❌ $service /register failed with status $REGISTER_STATUS"
+              docker logs "${service}_test" || true
+              docker rm -f "${service}_test" || true
+              exit 1
+            fi
+
+            echo "✅ $service local smoke tests passed"
+
+            docker rm -f "${service}_test" || true
+
+            # Deploy to Railway – environment per service via secrets (Team 1 provided)
+            ENV_VAR_NAME="RAILWAY_ENV_${service^^}"   # e.g., coordinator → RAILWAY_ENV_COORDINATOR
+            ENV_ID=$(printenv "$ENV_VAR_NAME")
+
+            if [ -z "$ENV_ID" ]; then
+              echo "⚠️ No Railway env ID for $service (expected $ENV_VAR_NAME), skipping deploy"
+              continue
+            fi
+
+            echo "🚀 Deploying $service to Railway (env: $ENV_ID)"
+
+            cd "$service_path"
+            railway up --service "$service" --environment "$ENV_ID" --ci
+            cd - >/dev/null
+
+            # Post-deploy smoke tests on Railway (inside container)
+            echo "🔍 Running post-deploy smoke tests for $service on Railway..."
+            cd "$service_path"
+            railway run -- bash -lc '
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000/health" || echo "000")
+              REGISTER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000/register" || echo "000")
+
+              if [ "$STATUS" -ne 200 ] || [ "$REGISTER_STATUS" -lt 200 ] || [ "$REGISTER_STATUS" -ge 300 ]; then
+                echo "❌ Post-deploy smoke tests failed in Railway"
+                exit 1
+              fi
+
+              echo "✅ Post-deploy smoke tests passed in Railway"
+            '
+            cd - >/dev/null
+
+            PORT_COUNTER=$((PORT_COUNTER + 1))
+          done
 name: Docker Build & Deploy to Railway
 
 on:

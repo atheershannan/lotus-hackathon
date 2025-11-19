@@ -192,6 +192,16 @@ git push origin main
 
 ---
 
+## 🧪 Smoke Tests (Cloud-only)
+
+- **Coordinator:** `scripts/smoke-test-coordinator.js` (expects `SERVICE_URL`)
+- **Microservice:** `scripts/smoke-test-microservice.js <service-name> <service-url>`
+- **All:** `scripts/smoke-test-all.js` (uses `COORDINATOR_URL`, `MS1_URL`, `MS2_URL`)
+
+> CI also runs built-in curl smoke checks for `/health` and `/register` per service.
+
+---
+
 ## 🔐 Required GitHub Secrets
 
 Add in: **GitHub → Settings → Secrets → Actions**
@@ -229,6 +239,9 @@ npm start
 - `/register`
 
 _(Coordinator also exposes `/route`, `/ui-settings`, `/metrics`)_
+
+> Coordinator `/ui-settings` reads from `ui/ui-ux-config.json` by default.
+> Override with `UI_CONFIG_PATH=/path/to/config.json` if needed (e.g., mounted in container).
 
 ---
 
