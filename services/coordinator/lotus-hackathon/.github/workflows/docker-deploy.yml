@@ -1,0 +1,96 @@
+name: Docker Build & Deploy to Railway
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      INTERNAL_PORT: 3000
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_ENV_ID: ${{ secrets.RAILWAY_ENV_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build, Test & Deploy Services
+        run: |
+          PORT_COUNTER=3000
+
+          for service_path in services/*; do
+            if [ ! -d "$service_path" ]; then
+              continue
+            fi
+
+            service=$(basename "$service_path")
+            echo "====================================="
+            echo "Building service: $service"
+            echo "====================================="
+
+            WORKDIR="$service_path"
+
+            docker build -t "$service:latest" "$WORKDIR"
+
+            echo "Running $service for health check..."
+            docker run -d -p $PORT_COUNTER:$INTERNAL_PORT --name "${service}_test" "$service:latest"
+
+            sleep 5
+
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT_COUNTER/health")
+            if [ "$STATUS" -ne 200 ]; then
+              echo "❌ $service failed health check!"
+              docker logs "${service}_test"
+              docker rm -f "${service}_test"
+              exit 1
+            fi
+            echo "✅ $service passed health check."
+
+            echo "Checking /register endpoint for $service..."
+            REGISTER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT_COUNTER/register" || echo "000")
+            if [ "$REGISTER_STATUS" -lt 200 ] || [ "$REGISTER_STATUS" -ge 300 ]; then
+              echo "❌ $service failed /register check! Status: $REGISTER_STATUS"
+              docker logs "${service}_test"
+              docker rm -f "${service}_test"
+              exit 1
+            fi
+            echo "✅ $service passed /register check."
+
+            docker rm -f "${service}_test"
+
+            echo "Deploying $service to Railway..."
+            cd "$WORKDIR"
+            railway up --detach
+
+            echo "Running post-deploy smoke tests on Railway for $service..."
+            railway run -- sh -lc '
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000/health" || echo "000")
+              if [ "$STATUS" -ne 200 ]; then
+                echo "Post-deploy /health check failed on Railway (status: $STATUS)"
+                exit 1
+              fi
+              echo "Post-deploy /health check passed on Railway."
+
+              REGISTER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000/register" || echo "000")
+              if [ "$REGISTER_STATUS" -lt 200 ] || [ "$REGISTER_STATUS" -ge 300 ]; then
+                echo "Post-deploy /register check failed on Railway (status: $REGISTER_STATUS)"
+                exit 1
+              fi
+              echo "Post-deploy /register check passed on Railway."
+            '
+            cd - > /dev/null
+
+            PORT_COUNTER=$((PORT_COUNTER + 1))
+          done
+
+
