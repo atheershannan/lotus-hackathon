@@ -1,5 +1,5 @@
 const logger = require('../utils/logger');
-const routingService = require('./routingService');
+const aiRoutingService = require('./aiRoutingService');
 const registryService = require('./registryService');
 
 /**
@@ -159,19 +159,40 @@ class ProxyService {
         path: req.path
       });
 
+      // Create structured data object (same format as other paths)
+      const routingData = {
+        type: 'proxy_query',
+        payload: {
+          query: query,
+          metadata: {},
+          context: requestContext
+        },
+        context: {
+          protocol: 'http',
+          source: 'proxy',
+          method: req.method,
+          path: req.path
+        }
+      };
+
+      const routingConfig = {
+        strategy: 'single',
+        priority: 'accuracy'
+      };
+
       // Use AI routing to find target service
       let routingResult;
       try {
-        routingResult = await routingService.routeRequest(query, requestContext);
+        routingResult = await aiRoutingService.routeRequest(routingData, routingConfig);
       } catch (error) {
         logger.warn('AI routing failed, using fallback', {
           error: error.message
         });
-        routingResult = await routingService.fallbackRouting(query);
+        routingResult = await aiRoutingService.fallbackRouting(query);
       }
 
       // Check if routing was successful
-      if (!routingResult.success || !routingResult.routing?.service) {
+      if (!routingResult.success || !routingResult.routing?.targetServices?.length) {
         return res.status(404).json({
           success: false,
           message: 'No suitable microservice found for this request',
@@ -180,8 +201,8 @@ class ProxyService {
         });
       }
 
-      const targetService = routingResult.routing.service;
-      const serviceName = routingResult.routing.serviceName;
+      const firstTargetService = routingResult.routing.targetServices[0];
+      const serviceName = firstTargetService.serviceName;
 
       // Get full service details
       const fullService = await registryService.getServiceByName(serviceName);
